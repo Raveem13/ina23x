@@ -455,7 +455,7 @@ impl<T: RegisterAccess> INA23x<T> {
         let raw_value = self.transport.read_i16(Register::CURRENT)?;
         Ok(raw_value as f32 * self.current_lsb)
     }
-    
+
     /// Power measurement, returns the power in watts.
     pub fn power(&mut self) -> Result<f32, Error<T::Error>> {
         let raw_value = self.transport.read_u24(Register::POWER)?;
