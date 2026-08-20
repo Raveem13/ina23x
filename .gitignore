@@ -1,0 +1,18 @@
+# Build files
+/target
+
+# Compiled objects
+*.o
+*.obj
+
+# Executables
+*.exe
+*.bin
+*.elf
+*.uf2
+
+# Documentations
+/Docs
+
+# Other tests
+tests/
