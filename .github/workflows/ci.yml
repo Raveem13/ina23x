@@ -28,13 +28,25 @@ jobs:
           components: clippy
       - run: cargo clippy -- -D warnings
 
-  test:
-    name: Unit & Mock Tests
+  test-ina238:
+    name: INA238 Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --verbose
+      - run: cargo test --test tests_ina238 --verbose
+    
+            #  Optional Cleanup
+      - name: Remove artifacts from target
+        run: cargo clean --verbose
+
+  test-ina239:
+    name: INA239 Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --test tests_ina239 --verbose
     
             #  Optional Cleanup
       - name: Remove artifacts from target
