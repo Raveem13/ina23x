@@ -124,7 +124,7 @@ fn test_current() {
 // Power result test
 #[test]
 fn test_power() {
-    let mut spi = SpiMock::new(&[read_txn(0x08, &u24_be_bytes(0x0020))].concat());
+    let mut spi = SpiMock::new(&[read_power_txn(0x08, &u24_be_bytes(0x0020))].concat());
     let mut ina = INA239::new(spi.clone());
     ina.power().unwrap();
     spi.done();
@@ -402,7 +402,7 @@ fn read_txn(reg: u8, bytes: &[u8]) -> [SpiTransaction<u8>; 3] {
     // Command byte for INA239 Read: Bit 7 = 1 (Read), Address B6-B1: Register address shifted left 1
     let cmd = 0x80 | ((reg & 0x3F) << 1);
     let expt_send = vec![cmd, 0x00, 0x00];
-    let mock_resp = vec![0x00, bytes[0], bytes[1]];
+    let mock_resp = [vec![cmd], bytes.to_vec()].concat();
 
     [
         SpiTransaction::transaction_start(),
@@ -426,6 +426,19 @@ fn write_txn(reg: u8, value: u16) -> [SpiTransaction<u8>; 3] {
 
 fn u24_be_bytes(value: u32) -> [u8; 3] {
     [(value >> 16) as u8, (value >> 8) as u8, value as u8]
+}
+
+fn read_power_txn(reg: u8, bytes: &[u8]) -> [SpiTransaction<u8>; 3] {
+    // Command byte for INA239 Read: Bit 7 = 1 (Read), Address B6-B1: Register address shifted left 1
+    let cmd = 0x80 | ((reg & 0x3F) << 1);
+    let expt_send = vec![cmd, 0x00, 0x00, 0x00];
+    let mock_resp = [vec![cmd], bytes.to_vec()].concat();
+
+    [
+        SpiTransaction::transaction_start(),
+        SpiTransaction::transfer_in_place(expt_send, mock_resp),
+        SpiTransaction::transaction_end(),
+    ]
 }
 
 //Expected shunt constant (SHUNT_CAL) calculation
