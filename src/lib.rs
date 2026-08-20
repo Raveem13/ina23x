@@ -148,7 +148,7 @@ pub trait RegisterAccess {
 
     fn read_i16(&mut self, reg: u8) -> Result<i16, Error<Self::Error>>;
 
-    fn read_i24(&mut self, reg: u8) -> Result<i32, Error<Self::Error>>;
+    fn read_u24(&mut self, reg: u8) -> Result<u32, Error<Self::Error>>;
 
     fn write_u16(&mut self, reg: u8, value: u16) -> Result<(), Error<Self::Error>>;
 }
@@ -183,12 +183,12 @@ impl<I2C: I2c> RegisterAccess for I2cTransport<I2C> {
     }
 
     // Read a 24-bit register (e.g., POWER register 0x08) over I2C
-    fn read_i24(&mut self, reg: u8) -> Result<i32, Error<I2C::Error>> {
+    fn read_u24(&mut self, reg: u8) -> Result<u32, Error<I2C::Error>> {
         let mut buf = [0u8; 3];
         match self.i2c.write_read(self.address.as_u8(), &[reg], &mut buf) {
             Ok(()) => Ok({
                 let bytes = [0, buf[0], buf[1], buf[2]];
-                i32::from_be(i32::from_ne_bytes(bytes))
+                u32::from_be_bytes(bytes)
             }),
             Err(e) => Err(Error::Communication(e)),
         }
@@ -325,11 +325,11 @@ impl<SPI: SpiDevice> RegisterAccess for SpiTransport<SPI> {
     }
 
     /// Read a 24-bit register (e.g., POWER register 0x08) over SPI
-    fn read_i24(&mut self, reg: u8) -> Result<i32, Error<SPI::Error>> {
+    fn read_u24(&mut self, reg: u8) -> Result<u32, Error<SPI::Error>> {
         let cmdaddr = 0x80 | ((reg & 0x3F) << 1);
         let mut buf = [cmdaddr, 0x00, 0x00, 0x00];
         match self.spi.transfer_in_place(&mut buf) {
-            Ok(()) => Ok(i32::from_be_bytes([0, buf[1], buf[2], buf[3]])),
+            Ok(()) => Ok(u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]])),
             Err(e) => Err(Error::Communication(e)),
         }
     }
@@ -455,9 +455,10 @@ impl<T: RegisterAccess> INA23x<T> {
         let raw_value = self.transport.read_i16(Register::CURRENT)?;
         Ok(raw_value as f32 * self.current_lsb)
     }
+    
     /// Power measurement, returns the power in watts.
     pub fn power(&mut self) -> Result<f32, Error<T::Error>> {
-        let raw_value = self.transport.read_i24(Register::POWER)?;
+        let raw_value = self.transport.read_u24(Register::POWER)?;
         Ok(raw_value as f32 * 0.2 * self.current_lsb)
     }
 
