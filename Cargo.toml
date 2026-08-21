@@ -5,10 +5,12 @@ edition = "2024"
 authors = ["Raveem Gouda"]
 readme = "README.md"
 keywords = [
-    "ina228",
+    "ina238",
+    "ina239",
     "embedded-hal",
     "power-monitor",
     "i2c",
+    "spi",
     "ti",
 ]
 categories = [
