@@ -153,6 +153,7 @@ pub trait RegisterAccess {
     fn write_u16(&mut self, reg: u8, value: u16) -> Result<(), Error<Self::Error>>;
 }
 
+// --- I2C Interface Implementation ---
 pub struct I2cTransport<I2C> {
     i2c: I2C,
     address: Address,
@@ -236,63 +237,6 @@ where
         self.transport.address
     }
 }
-
-/*
-use embedded_hal::i2c::I2c;
-use embedded_hal::spi::Spi;
-
-/// Internal trait abstracting I2C vs SPI raw register transfers
-pub trait RegisterAccess {
-    type Error;
-    fn read_reg(&mut self, reg: u8) -> Result<u16, Self::Error>;
-    fn write_reg(&mut self, reg: u8, val: u16) -> Result<(), Self::Error>;
-}
-
-// --- I2C Interface Implementation ---
-pub struct InaI2c<I2C> {
-    i2c: I2C,
-    address: u8,
-}
-
-impl<I2C: I2c> RegisterAccess for InaI2c<I2C> {
-    type Error = I2C::Error;
-
-    fn read_reg(&mut self, reg: u8) -> Result<u16, Self::Error> {
-        let mut buffer = [0u8; 2];
-        self.i2c.write_read(self.address, &[reg], &mut buffer)?;
-        Ok(u16::from_be_bytes(buffer))
-    }
-
-    fn write_reg(&mut self, reg: u8, val: u16) -> Result<(), Self::Error> {
-        let bytes = val.to_be_bytes();
-        self.i2c.write(self.address, &[reg, bytes[0], bytes[1]])
-    }
-}
-
-// --- SPI Interface Implementation ---
-pub struct InaSpi<SPI> {
-    spi: SPI,
-}
-
-impl<SPI: SpiDevice> RegisterAccess for InaSpi<SPI> {
-    type Error = SPI::Error;
-
-    fn read_reg(&mut self, reg: u8) -> Result<u16, Self::Error> {
-        // Bit 7 set to 1 for Read operation
-        let cmd = 0x80 | ((reg & 0x3F) << 1);
-        let mut buffer = [cmd, 0x00, 0x00];
-        self.spi.transfer_in_place(&mut buffer)?;
-        Ok(u16::from_be_bytes([buffer[1], buffer[2]]))
-    }
-
-    fn write_reg(&mut self, reg: u8, val: u16) -> Result<(), Self::Error> {
-        // Bit 7 cleared to 0 for Write operation
-        let cmd = (reg & 0x3F) << 1;
-        let bytes = val.to_be_bytes();
-        self.spi.write(&[cmd, bytes[0], bytes[1]])
-    }
-}
-*/
 
 // --- SPI Interface Implementation ---
 pub struct SpiTransport<SPI> {
