@@ -67,7 +67,7 @@
 //!use ina23x::{INA238, Address, AdcRange, *};
 //!//Import your microcontroller hal i2c
 //!//use esp_hal::i2c::I2c;         //eg. If you're using ESP32
-//! 
+//!
 //!// Initialize I2C driver
 //!let i2c = I2C::new(peripherals.I2C0, sda, scl, 400.kHz(), &clocks);  //Use your microcontroller hal i2c
 //!// Create INA238 driver instance with default I2C address (0x40)
@@ -90,12 +90,12 @@
 //!
 //!### INA239 (SPI) Example
 //!
-//!```rust,ignore
+//!```rust,no_run,ignore
 //!use embedded_hal::spi::SpiDevice;
 //!use ina23x::{INA239, AdcRange, *};
 //!//Import your microcontroller hal spi
 //!//use esp_hal::spi::master::SpiDevice;       //eg. If you're using ESP32
-//! 
+//!
 //!// Initialize SPI driver
 //!let spi_device = SpiDevice::new(spi_bus, cs_pin);
 //!// Create INA239 driver instance
