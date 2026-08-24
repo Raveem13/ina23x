@@ -1,13 +1,117 @@
 #![no_std]
-
-//! # INA23x driver for embedded-hal
-//! A Rust driver for the INA238 & INA239 current/voltage/power monitor IC.
-//! This driver is designed to work with the `embedded-hal` traits, making it compatible with a wide range of microcontrollers and platforms.
+//! # INA23x driver
+//! A platform-agnostic `#![no_std]` Rust driver for the Texas Instruments "INA23x (INA238 & INA239)" 85V, 16-Bit High-Precision Power/Current/Voltage Monitor using `embedded-hal`.
+//! This driver is designed to work with the [`embedded-hal`] traits, making it compatible with a wide range of microcontrollers and platforms.
 //!
-//! More about the embedded-hal: <https://docs.rs/embedded-hal/latest/embedded_hal/index.html>
+//! [`embedded-hal`]: (https://docs.rs/embedded-hal/latest/embedded_hal/index.html)
 //!
-//! More about INA238: <https://www.ti.com/product/INA228>
-//! More about INA239: <https://www.ti.com/product/INA239s>
+//!## Features
+//! - **`#![no_std]` Support**: Suitable for bare-metal microcontrollers (STM32, RP2040, ESP32, nRF, etc.).
+//! - **`embedded-hal` Integration**: Works with any I2C peripheral implementing `embedded-hal` 1.0 traits.
+//! - **Dual Bus Support**:
+//!   - **I2C (`Ina238`)**: Works with any I2C peripheral implementing `embedded-hal` 1.0 `I2c` traits.
+//!   - **SPI (`Ina239`)**: Works with any SPI peripheral implementing `embedded-hal` 1.0 `SpiDevice` traits.
+//! - **Core Telemetry**:
+//!   - Bus Voltage Measurement
+//!   - Shunt Voltage Measurement
+//!   - Calculated Current and Power Readings
+//!   - Temperature Sensing
+//! - **Configuration & Calibration**:
+//!   - Custom Shunt Resistor (`SHUNT_CAL`) calibration setup
+//!   - Adjustable conversion times and averaging settings
+//! - **Diagnostics & Alerts**:
+//!   - Full read access to diagnostic flags (`DIAG_ALRT`)
+//!   - Configurable overvoltage, undervoltage, power, and temperature threshold limits (Setters & Getters)
+//!
+//!## Devices
+//!
+//! This driver is compatible with both the INA238 as well as the INA239 power monitor.
+//!
+//! These current, voltage, power, and temperature monitors feature an integrated high-resolution
+//! 16-bit delta-sigma ADC. The internal die temperature sensor offers ±1°C accuracy, while
+//! background arithmetic circuits handle current and power calculations directly. They support a
+//! wide common-mode voltage range from -0.3V to +85V on current-sensing rails, selectable conversion
+//! times (50µs to 4.12ms), and sample averaging up to 1024x.
+//!
+//! The INA238 device is a digital power monitor with an I2C / SMBus interface supporting fast mode
+//! (up to 400 kHz) and high-speed mode (up to 2.94 MHz). It features two address pins (A0 and A1)
+//! that allow up to 16 distinct I2C target addresses on a single bus.
+//!
+//! The INA239 device features identical internal register architecture, resolution, and core
+//! functionality to the INA238, but utilizes a 4-wire SPI communication interface capable of
+//! speeds up to 10 MHz.
+//!
+//! The devices feature flexible alert responses and programmable threshold limits for over-current,
+//! voltage, and power monitoring.
+//!
+//! Datasheets:
+//! - [INA238](https://www.ti.com/lit/ds/symlink/ina238.pdf)
+//! - [INA239](https://www.ti.com/lit/ds/symlink/ina239.pdf)
+//!
+//! ## Getting Started
+//! Add `ina23x` to your `Cargo.toml`:
+//!  ```toml
+//!  [dependencies]
+//!  ina23x = "0.1.0"
+//!  ```
+//! To minimize code footprint, you can selectively enable or disable support for specific chips using Cargo features:
+//! ```toml
+//!  [features]
+//!  default = ["INA238", "INA239"]
+//!  ```
+//!## Usage
+//!### INA238 (I2C) Example
+//!
+//!```rust,no_run, ignore
+//!use embedded_hal::i2c::I2c;
+//!use ina23x::{INA238, Address, AdcRange, *};
+//!//Import your microcontroller hal i2c
+//!//use esp_hal::i2c::I2c;         //eg. If you're using ESP32
+//! 
+//!// Initialize I2C driver
+//!let i2c = I2C::new(peripherals.I2C0, sda, scl, 400.kHz(), &clocks);  //Use your microcontroller hal i2c
+//!// Create INA238 driver instance with default I2C address (0x40)
+//!let mut sensor = INA238::new(i2c.clone(), Address::AddrA1gndA0gnd);
+//!
+//!// Configure shunt calibration (e.g., for 2A max current & 10 mΩ shunt)
+//!sensor.set_shunt_calibrate(2.0, 0.1).unwrap();
+//!i2c.done();
+//!
+//!// Read bus voltage in Volts
+//!if let Ok(bus_voltage) = sensor.bus_voltage() {
+//!    // Process bus voltage...
+//!}
+//!
+//!// Read current in Amperes
+//!if let Ok(current) = sensor.current() {
+//!    // Process current...
+//!}
+//!```
+//!
+//!### INA239 (SPI) Example
+//!
+//!```rust,ignore
+//!use embedded_hal::spi::SpiDevice;
+//!use ina23x::{INA239, AdcRange, *};
+//!//Import your microcontroller hal spi
+//!//use esp_hal::spi::master::SpiDevice;       //eg. If you're using ESP32
+//! 
+//!// Initialize SPI driver
+//!let spi_device = SpiDevice::new(spi_bus, cs_pin);
+//!// Create INA239 driver instance
+//!let mut sensor = INA239::new(spi_device);
+//!
+//!// Read bus voltage in Volts
+//!if let Ok(bus_voltage) = sensor.bus_voltage() {
+//!    // Process bus voltage...
+//!}
+//!
+//!// Read current in Amperes
+//!if let Ok(current) = sensor.current() {
+//!    // Process current...
+//!}
+//!```
+//!
 
 // Import dependencies from embedded-hal
 use embedded_hal::i2c::I2c;
