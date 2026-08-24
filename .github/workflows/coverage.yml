@@ -1,0 +1,66 @@
+name: Deploy Code Coverage
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE*'
+      - '.gitignore'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: taiki-e/install-action@cargo-llvm-cov
+
+      - uses: Swatinem/rust-cache@v2
+
+      # 1. Generate HTML report
+      - name: Generate HTML Coverage Report
+        run: cargo llvm-cov --all-features --html --output-dir ./coverage-html
+
+      # 2. Parse coverage % & create badge JSON
+      - name: Generate Badge JSON
+        run: |
+          PCT=$(cargo llvm-cov --all-features --json | jq -r '.data[0].totals.lines.percent | round')
+          
+          if [ $PCT -ge 80 ]; then COLOR="brightgreen";
+          elif [ $PCT -ge 60 ]; then COLOR="yellow";
+          else COLOR="red"; fi
+
+          cat <<EOF > ./coverage-html/coverage-badge.json
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${PCT}%",
+            "color": "${COLOR}"
+          }
+          EOF
+
+      # 3. Deploy to Pages
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage-html
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
